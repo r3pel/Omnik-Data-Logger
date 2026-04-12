@@ -1,51 +1,43 @@
-##
-# ----------------------------------------------------------------------------
-# "THE BEER-WARE LICENSE" (Revision 42):
-# <t3kpunk@gmail.com> wrote this file.  As long as you retain this notice you
-# can do whatever you want with this stuff. If we meet some day, and you think
-# this stuff is worth it, you can buy me a beer in return. Widmar 
-# ----------------------------------------------------------------------------
-# Heavily updated by Christopher McAvaney <christopher.mcavaney@gmail.com>
-# Now uses the Homie Convention library (https://github.com/mjcumming/homie4) with 
-# a locally defined "Solar Inverter Device".
-##
-
 import PluginLoader
+from datetime import datetime
+import paho.mqtt.client as mqtt
 
-from solar_inverter_homie import Device_Solar_Inverter
-import time
-#import logging
-
-
-#logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
-#log = logging
-
+# 1. Let op de klassenaam: MQTTOutput (was MWTT)
 class MQTTOutput(PluginLoader.Plugin):
-
-    def __init__(self):
-        # Translate config items to what homie mqtt library expects for mqtt settings
-        mqtt_settings = {
-            'MQTT_BROKER' : self.config.get('mqtt', 'host'),
-            'MQTT_PORT' : int(self.config.get('mqtt', 'port')),
-            'MQTT_USERNAME' : self.config.get('mqtt', 'user'),
-            'MQTT_PASSWORD' : self.config.get('mqtt', 'passwd'),
-        }
-
-        self.logger.info('{}: creating Device_Solar_Inverter() homie instance'.format(self.__class__.__name__))
-        self.solar_inverter_device = Device_Solar_Inverter( device_id=self.config.get('mqtt', 'device_id'), name=self.config.get('mqtt', 'name'), mqtt_settings=mqtt_settings )
-        time.sleep(1)
+    """Outputs the data from the Omnik inverter to an MQTT server """
 
     def process_message(self, msg):
-        self.logger.debug('process_message(): publishing')
+        # 2. Nieuwe Paho-client syntax voor Python 3
+        # We gebruiken CallbackAPIVersion.VERSION1 voor compatibiliteit
+        try:
+            client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, "Omnik Solar Inverter")
+        except AttributeError:
+            # Voor oudere paho-mqtt versies
+            client = mqtt.Client("Omnik Solar Inverter")
 
-        pv_v_array = [msg.v_pv(1), msg.v_pv(2), msg.v_pv(3)]
-        pv_c_array = [msg.i_pv(1), msg.i_pv(2), msg.i_pv(3)]
-        ac_v_array = [msg.v_ac(1), msg.v_ac(2), msg.v_ac(3)]
-        ac_c_array = [msg.i_ac(1), msg.i_ac(2), msg.i_ac(3)]
-        ac_f_array = [msg.f_ac(1), msg.f_ac(2), msg.f_ac(3)]
+        client.username_pw_set(self.config.get('mqtt', 'user'),
+                               self.config.get('mqtt', 'pass'))
+        
+        # 3. CRUCIAAL: poort moet een 'int' zijn, geen tekst
+        port = int(self.config.get('mqtt', 'port'))
+        host = self.config.get('mqtt', 'host')
+        
+        client.connect(host, port)
 
-        self.solar_inverter_device.update_pv_voltage(pv_v_array, pv_c_array, ac_v_array, ac_c_array, ac_f_array)
-        self.solar_inverter_device.update_energy(msg.e_total, msg.e_today, msg.p_ac(1))
-        self.solar_inverter_device.update_status(True)
+        # Berichten publiceren
+        client.publish("power/solar/e_total", msg.e_total)
+        client.publish("power/solar/e_today", msg.e_today)
+        client.publish("power/solar/h_total", msg.h_total)
+        client.publish("power/solar/power", msg.power)
+        client.publish("power/solar/temp", msg.temperature)
 
-        time.sleep(3)
+        for x in [1, 2, 3]:
+            # Gebruik str(x) voor de topic naam
+            client.publish("power/solar/v_pv" + str(x), msg.v_pv(x))
+            client.publish("power/solar/v_ac" + str(x), msg.v_ac(x))
+            client.publish("power/solar/i_ac" + str(x), msg.i_ac(x))
+            client.publish("power/solar/f_ac" + str(x), msg.f_ac(x))
+            client.publish("power/solar/p_ac" + str(x), msg.p_ac(x))
+
+        client.loop(1)
+        client.disconnect()
