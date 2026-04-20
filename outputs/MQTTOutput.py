@@ -20,19 +20,19 @@ class MQTTOutput(PluginLoader.Plugin):
         try:
             client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, "Omnik Solar Inverter")
         except AttributeError:
-            # Voor oudere paho-mqtt versies
+            # For older paho-mqtt versions
             client = mqtt.Client("Omnik Solar Inverter")
 
         client.username_pw_set(self.config.get('mqtt', 'user'),
                                self.config.get('mqtt', 'pass'))
         
-        # 3. CRUCIAAL: poort moet een 'int' zijn, geen tekst
+        # CRUCIAL: port must be an 'int', not text
         port = int(self.config.get('mqtt', 'port'))
         host = self.config.get('mqtt', 'host')
         
         client.connect(host, port)
 
-        # Berichten publiceren
+        # Publish messages
         client.publish("power/solar/e_total", msg.e_total)
         client.publish("power/solar/e_today", msg.e_today)
         client.publish("power/solar/h_total", msg.h_total)
@@ -40,7 +40,7 @@ class MQTTOutput(PluginLoader.Plugin):
         client.publish("power/solar/temp", msg.temperature)
 
         for x in [1, 2, 3]:
-            # Gebruik str(x) voor de topic naam
+            # Use str(x) for topic name
             client.publish("power/solar/v_pv" + str(x), msg.v_pv(x))
             client.publish("power/solar/v_ac" + str(x), msg.v_ac(x))
             client.publish("power/solar/i_ac" + str(x), msg.i_ac(x))
