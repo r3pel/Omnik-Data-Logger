@@ -12,11 +12,11 @@ class PVoutputOutput(PluginLoader.Plugin):
     def process_message(self, msg):
         now = datetime.datetime.now()
 
-        if (now.minute % 5) == 0:  # Alleen op 5-minuten intervallen
+        if (now.minute % 5) == 0:  # # Only run at every 5 minute interval
             self.logger.info('Uploading to PVoutput')
             url = "http://pvoutput.org/service/r2/addstatus.jsp"
 
-            # Jouw data verzamelen
+            # always provided data
             get_data = {
                 'key': self.config.get('pvout', 'apikey'),
                 'sid': self.config.get('pvout', 'sysid'),
@@ -26,21 +26,21 @@ class PVoutputOutput(PluginLoader.Plugin):
                 'v2': msg.p_ac(1),
                 'v6': msg.v_ac(1)
             }
-
+            
+            # optionally provided data
             if self.config.getboolean('inverter', 'use_temperature'):
                 get_data['v5'] = msg.temperature
 
-            # DE WERKENDE PYTHON 3 METHODE (zonder six):
             try:
                 get_data_encoded = urllib.parse.urlencode(get_data)
                 request_object = urllib2.Request(url + '?' + get_data_encoded)
                 response = urllib2.urlopen(request_object)
                 
-                # Uitlezen en decoden van de bytes naar tekst
+               # Reading and decoding the bytes to text
                 result = response.read().decode('utf-8')
-                self.logger.info(f"PVOutput resultaat: {result}")
+                self.logger.info(f"PVOutput result: {result}")
             except Exception as e:
-                self.logger.error(f"Fout tijdens upload: {e}")
+                self.logger.error(f"Error during upload: {e}")
 
         else:
             self.logger.info('not at a 5 minute interval')
