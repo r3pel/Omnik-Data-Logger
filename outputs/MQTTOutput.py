@@ -1,14 +1,22 @@
+##
+# ----------------------------------------------------------------------------
+# "THE BEER-WARE LICENSE" (Revision 42):
+# <t3kpunk@gmail.com> wrote this file.  As long as you retain this notice you
+# can do whatever you want with this stuff. If we meet some day, and you think
+# this stuff is worth it, you can buy me a beer in return. Widmar 
+# ----------------------------------------------------------------------------
+##
+
 import PluginLoader
 from datetime import datetime
 import paho.mqtt.client as mqtt
 
-# 1. Let op de klassenaam: MQTTOutput (was MWTT)
 class MQTTOutput(PluginLoader.Plugin):
     """Outputs the data from the Omnik inverter to an MQTT server """
 
     def process_message(self, msg):
-        # 2. Nieuwe Paho-client syntax voor Python 3
-        # We gebruiken CallbackAPIVersion.VERSION1 voor compatibiliteit
+        # New Paho client syntax for Python 3
+        # use CallbackAPIVersion.VERSION1 for compatibility
         try:
             client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, "Omnik Solar Inverter")
         except AttributeError:
