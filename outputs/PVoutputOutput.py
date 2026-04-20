@@ -1,8 +1,8 @@
 # put in place for python2 vs python3 compatibility
 import PluginLoader
 import datetime
-import urllib.parse   # Nodig voor urllib.parse.urlencode
-import urllib.request as urllib2  # Vervangt het oude urllib2
+import urllib.parse   # Required for urllib.parse.urlencode
+import urllib.request as urllib2  # Replaces the old urllib2
 
 
 
